@@ -17,10 +17,10 @@ The system simulates realistic market dynamics such as inflation, bidding wars, 
 ### Agent Strategies
 The system implements five distinct bidding strategies:
 1.  **Myopic (Greedy):** Bids aggressively on any item with positive utility ($Valuation - Price > 0$), ignoring budget constraints.
-2.  **Budget Constrained:** Behaves like Myopic but strictly respects a wallet limit (e.g., `Dev_Test_Env` stops bidding when budget is exhausted).
-3.  **Bundle (All-or-Nothing):** Bids only if it can secure a specific set of items together (e.g., `Distributed_ML_Job` needs Slot 1 & 2 simultaneously).
-4.  **Flexible (Load Balancer):** Targets *any* one item from a preferred set (e.g., `Web_Server_HA` needs Slot 1 OR 2).
-5.  **Sniper:** Waits until the final rounds to enter the auction, attempting to secure items at lower prices.
+2.  **Budget Constrained:** Behaves like Myopic but strictly respects a wallet limit.
+3.  **Bundle (All-or-Nothing):** Bids only if it can secure a specific set of items together.
+4.  **Flexible (Load Balancer):** Targets *any* one item from a preferred set.
+5.  **Sniper:** Waits until the later rounds to enter the auction, attempting to secure items at lower prices.
 
 ### Scenarios
 * **Scenario 1 (General Cloud):** Balanced mix of enterprise (High budget) and startup (Low budget) agents.
