@@ -1,89 +1,61 @@
-# auction-system
+# Multi-Agent Auction Simulation System
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+## Overview
+A high-performance simulation engine for **Simultaneous Ascending Auctions (SAA)** built with **Quarkus** and **Java 21**. This project models autonomous agents competing for cloud computing resources (slots) using Game Theoretic strategies.
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+The system simulates realistic market dynamics such as inflation, bidding wars, and resource allocation efficiency, visualizing the results via an interactive real-time dashboard.
 
-## Running the application in dev mode
+## Tech Stack
+* **Core:** Java 21, Quarkus Framework
+* **Database:** PostgreSQL (Docker)
+* **Data Analysis:** Tablesaw (Dataframes)
+* **Visualization:** Plotly JS (Charts & Dashboards)
+* **Build Tool:** Maven
 
-You can run your application in dev mode that enables live coding using:
+## Key Features
 
-```shell script
-./mvnw quarkus:dev
+### Agent Strategies
+The system implements five distinct bidding strategies:
+1.  **Myopic (Greedy):** Bids aggressively on any item with positive utility ($Valuation - Price > 0$), ignoring budget constraints.
+2.  **Budget Constrained:** Behaves like Myopic but strictly respects a wallet limit (e.g., `Dev_Test_Env` stops bidding when budget is exhausted).
+3.  **Bundle (All-or-Nothing):** Bids only if it can secure a specific set of items together (e.g., `Distributed_ML_Job` needs Slot 1 & 2 simultaneously).
+4.  **Flexible (Load Balancer):** Targets *any* one item from a preferred set (e.g., `Web_Server_HA` needs Slot 1 OR 2).
+5.  **Sniper:** Waits until the final rounds to enter the auction, attempting to secure items at lower prices.
+
+### Scenarios
+* **Scenario 1 (General Cloud):** Balanced mix of enterprise (High budget) and startup (Low budget) agents.
+* **Scenario 2 (High Contention):** "Bidding War" scenario with wealthy agents causing massive price inflation and over-demand.
+* **Scenario 3 (Advanced Strategy):** Complex interaction between Bundle, Flexible, and Budget-constrained agents demonstrating non-trivial market dynamics.
+
+## Getting Started
+
+### Prerequisites
+* Java 21+
+* Docker & Docker Compose
+* Maven (or use the included `./mvnw` wrapper)
+
+### 1. Start Infrastructure
+Run the database container using Docker Compose:
+```bash
+docker-compose up -d postgres-db
 ```
-
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
-
-## Packaging and running the application
-
-The application can be packaged using:
-
-```shell script
-./mvnw package
+### 2. Application Start
+Start the Quarkus development mode:
+```bash
+./mvnw clean package quarkus:dev
 ```
-
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
-
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
-./mvnw package -Dquarkus.package.jar.type=uber-jar
+### 3. Simulation execution
+The application runs an interactive CLI. Inside the running terminal, use the sim command:
+```bash
+sim -id 3
 ```
+### 4. Visualization dashboard
+The dashboard provides deep insights into the auction dynamics:
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
+1. Final Allocation Table: Shows the winners and the final clearing price for each item.
 
-## Creating a native executable
+2. Revenue Convergence: A line chart showing the total Social Welfare evolution over time.
 
-You can create a native executable using:
+3. Market Intensity: A bar chart displaying the number of bids per round.
 
-```shell script
-./mvnw package -Dnative
-```
-
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
-
-```shell script
-./mvnw package -Dnative -Dquarkus.native.container-build=true
-```
-
-You can then execute your native executable with: `./target/auction-system-1.0.0-SNAPSHOT-runner`
-
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
-
-## Related Guides
-
-- Picocli ([guide](https://quarkus.io/guides/picocli)): Develop command line applications with Picocli
-- SmallRye OpenAPI ([guide](https://quarkus.io/guides/openapi-swaggerui)): Document your REST APIs with OpenAPI - comes with Swagger UI
-- REST Jackson ([guide](https://quarkus.io/guides/rest#json-serialisation)): Jackson serialization support for Quarkus REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it
-- SmallRye Health ([guide](https://quarkus.io/guides/smallrye-health)): Monitor service health
-
-## Provided Code
-
-### Picocli Example
-
-Hello and goodbye are civilization fundamentals. Let's not forget it with this example picocli application by changing the <code>command</code> and <code>parameters</code>.
-
-[Related guide section...](https://quarkus.io/guides/picocli#command-line-application-with-multiple-commands)
-
-Also for picocli applications the dev mode is supported. When running dev mode, the picocli application is executed and on press of the Enter key, is restarted.
-
-As picocli applications will often require arguments to be passed on the commandline, this is also possible in dev mode via:
-
-```shell script
-./mvnw quarkus:dev -Dquarkus.args='Quarky'
-```
-
-### REST
-
-Easily start your REST Web Services
-
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
-
-### SmallRye Health
-
-Monitor your application's health using SmallRye Health
-
-[Related guide section...](https://quarkus.io/guides/smallrye-health)
+4. Agent Activity: Analysis of bidders aggressiveness.
