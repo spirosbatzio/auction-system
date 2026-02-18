@@ -1,0 +1,20 @@
+# Production: use image from GitHub Container Registry (no local build).
+# AUCTION_IMAGE is injected by the CI/CD workflow.
+services:
+  auction-app:
+    image: ${AUCTION_IMAGE}
+    container_name: auction-app
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: auction-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - auction-app
