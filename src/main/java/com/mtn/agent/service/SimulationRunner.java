@@ -1,19 +1,13 @@
 package com.mtn.agent.service;
 
-import com.mtn.agent.domain.AuctionItem;
-import com.mtn.agent.domain.AuctionState;
-import com.mtn.agent.domain.Bid;
-import com.mtn.agent.domain.BidRecord;
-import com.mtn.agent.domain.RoundStat;
-import com.mtn.agent.domain.entity.AgentConfig;
-import com.mtn.agent.domain.entity.ScenarioConfig;
+import com.mtn.agent.domain.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import org.jboss.logging.Logger;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @ApplicationScoped
 public class SimulationRunner {
@@ -29,8 +23,18 @@ public class SimulationRunner {
   @Inject
   ValuationGenerator valGenerator;
 
+  @Inject
+  ScenarioService scenarioService;
+
+  @Inject
+  EquilibriumAnalysisService equilibriumAnalysisService;
+
   private final List<RoundStat> statsHistory = Collections.synchronizedList(new ArrayList<>());
   private final List<BidRecord> bidHistory = Collections.synchronizedList(new ArrayList<>());
+  private final Map<String, Map<String, Double>> agentValuations = new ConcurrentHashMap<>();
+  private final List<EquilibriumRoundStat> equilibriumHistory = Collections.synchronizedList(new ArrayList<>());
+
+  private List<AgentService> currentAgents = List.of();
 
   public List<RoundStat> getStatsHistory() {
     return new ArrayList<>(statsHistory);
@@ -44,67 +48,55 @@ public class SimulationRunner {
     return auctioneer.getState().items();
   }
 
-  @Transactional
-  public void runDatabaseScenario(Long scenarioId) {
+  public List<AgentService> getCurrentAgents() {
+    return currentAgents;
+  }
 
-    ScenarioConfig scenario = ScenarioConfig.findById(scenarioId);
+  public List<EquilibriumRoundStat> getEquilibriumHistory() {
+    return new ArrayList<>(equilibriumHistory);
+  }
 
-    if (scenario == null) {
+  public void runInMemoryScenario(Long scenarioId) {
+    Optional<ScenarioData> scenarioOpt = scenarioService.getScenario(scenarioId);
+
+    if (scenarioOpt.isEmpty()) {
       LOG.error("Scenario not found with ID: " + scenarioId);
       return;
     }
 
-    LOG.infov("=== LOADING DB SCENARIO: {0} ===", scenario.name);
+    ScenarioData scenario = scenarioOpt.get();
+    LOG.infov("=== LOADING IN-MEMORY SCENARIO: {0} ===", scenario.name());
 
-    auctioneer.init(scenario.numberOfSlots);
-
+    auctioneer.init(scenario.numberOfSlots(), scenario.epsilon());
+    agentValuations.clear();
     List<AgentService> agents = new ArrayList<>();
 
-    for (AgentConfig config : scenario.agents) {
+    for (AgentData config : scenario.agents()) {
       AgentService agent = agentFactory.get();
 
       Map<String, Double> vals = valGenerator.generate(
-              config.valuationType,
-              scenario.numberOfSlots,
-              config.targetSlot
+              config.valuationType(),
+              scenario.numberOfSlots(),
+              config.targetSlot()
       );
-      double budget = (config.budgetLimit == 0) ? -1.0 : config.budgetLimit;
-      agent.init(config.agentName, vals, config.strategyType, budget);
+      double budget = (config.budgetLimit() == 0) ? -1.0 : config.budgetLimit();
+      agent.init(config.agentName(), vals, config.strategyType(), budget);
+      agentValuations.put(agent.getAgentId(), vals);
       agents.add(agent);
 
       LOG.infov("Loaded Agent: {0} [Strategy: {1} Valuation: {2} Budget: {3}",
-              config.agentName, config.strategyType, config.valuationType, budget);
+              config.agentName(), config.strategyType(), config.valuationType(), budget);
     }
 
-    runLoop(agents, scenario.maxRounds);
-  }
+    currentAgents = agents;
 
-  public void runSimulation(int numberOfAgents) {
-    LOG.info("=== STARTING RANDOM SIMULATION ===");
-
-    auctioneer.init(5);
-
-    List<AgentService> agents = new ArrayList<>();
-    Random rand = new Random();
-
-    for (int i = 0; i < numberOfAgents; i++) {
-      AgentService agent = agentFactory.get();
-
-      Map<String, Double> vals = new HashMap<>();
-      vals.put("SLOT_1", 10.0 + rand.nextInt(15));
-      vals.put("SLOT_2", 5.0 + rand.nextInt(10));
-      vals.put("SLOT_3", (double) rand.nextInt(20));
-
-      agent.init("SimAgent_" + i, vals, "MYOPIC", -1);
-      agents.add(agent);
-    }
-
-    runLoop(agents, 100);
+    runLoop(agents, scenario.maxRounds());
   }
 
   private void runLoop(List<AgentService> agents, int maxRounds) {
     statsHistory.clear();
     bidHistory.clear();
+    equilibriumHistory.clear();
 
     int currentRound = 0;
     System.out.println("DATA_CSV:Round,TotalBids,Revenue");
@@ -125,7 +117,7 @@ public class SimulationRunner {
         if (bid != null) {
           auctioneer.receiveBid(bid);
           bidsInThisRound++;
-          bidHistory.add(new BidRecord(currentRound, agent.getAgentId(),bid.itemId(), bid.amount()));
+          bidHistory.add(new BidRecord(currentRound, agent.getAgentId(), bid.itemId(), bid.amount()));
         }
       }
 
@@ -136,6 +128,19 @@ public class SimulationRunner {
               .sum();
 
       statsHistory.add(new RoundStat(currentRound, bidsInThisRound, revenue));
+
+      EquilibriumAnalysisService.NashEquilibriumResult nashResult = equilibriumAnalysisService.checkNashEquilibrium(
+              state, agentValuations, agents);
+      EquilibriumAnalysisService.ParetoEfficiencyResult paretoResult = equilibriumAnalysisService.calculateParetoEfficiency(
+              state, agentValuations);
+
+      equilibriumHistory.add(new EquilibriumRoundStat(
+              currentRound,
+              nashResult.isNashEquilibrium(),
+              nashResult.agentsWhoCanImprove().size(),
+              paretoResult.efficiencyRatio(),
+              paretoResult.currentSocialWelfare()
+      ));
 
       System.out.println("DATA_CSV:" + currentRound + "," + bidsInThisRound + "," + revenue);
 
@@ -157,5 +162,16 @@ public class SimulationRunner {
     }
     System.out.println("Total Revenue (Social Welfare Proxy): " + totalWelfare);
     System.out.println("==============================\n");
+  }
+
+  public EquilibriumAnalysisService.NashEquilibriumResult getNashEquilibriumResult() {
+    AuctionState state = auctioneer.getState();
+    List<AgentService> agents = getCurrentAgents(); // You'll need to track this
+    return equilibriumAnalysisService.checkNashEquilibrium(state, agentValuations, agents);
+  }
+
+  public EquilibriumAnalysisService.ParetoEfficiencyResult getParetoEfficiencyResult() {
+    AuctionState state = auctioneer.getState();
+    return equilibriumAnalysisService.calculateParetoEfficiency(state, agentValuations);
   }
 }

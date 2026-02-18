@@ -47,6 +47,19 @@ public class ValuationGenerator {
         valuations.put("SLOT_1", 30.0);
         valuations.put("SLOT_2", 30.0);
         break;
+      case "RANDOM":
+        // Assign random values to multiple slots
+        for (int i = 1; i <= slotCount; i++) {
+          if (rand.nextDouble() > 0.5) {  // 50% chance per slot
+            valuations.put("SLOT_" + i, 10.0 + rand.nextDouble() * 20.0);
+          }
+        }
+        // Ensure at least one slot has a value
+        if (valuations.isEmpty() && slotCount > 0) {
+          int randomSlot = rand.nextInt(slotCount) + 1;
+          valuations.put("SLOT_" + randomSlot, 10.0 + rand.nextDouble() * 20.0);
+        }
+        break;
       default:
         for (int i = 0; i <= slotCount; i++) {
           if (rand.nextDouble() > 0.6) {

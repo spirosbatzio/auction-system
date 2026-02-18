@@ -19,24 +19,30 @@ public class AuctioneerService {
 
   private int round = 0;
   private boolean isActive = true;
+  private double epsilon = 1.0;
 
   public void init() {
-    init(5);
+    init(5, 1.0);
   }
 
   public void init(int numberOfSlots) {
+    init(numberOfSlots, 1.0);
+  }
+
+  public void init(int numberOfSlots, double epsilon) {
     items.clear();
     currentRoundBids.clear();
 
     this.round = 0;
     this.isActive = true;
+    this.epsilon = epsilon;
 
     for (int i = 1; i <= numberOfSlots; i++) {
       String slotId = "SLOT_" + i;
       items.put(slotId, new AuctionItem(slotId, 0.0, null));
     }
 
-    LOG.infov("--- AUCTION INITIALIZED with {0} Slots ---", numberOfSlots);
+    LOG.infov("--- AUCTION INITIALIZED with {0} Slots, Epsilon: {1} ---", numberOfSlots, epsilon);
   }
 
 
@@ -87,7 +93,6 @@ public class AuctioneerService {
 
       } else {
 
-        double epsilon = 1.0;
         double newPrice = item.price() + epsilon;
 
         items.put(itemId, item.withNewPrice(newPrice, null));

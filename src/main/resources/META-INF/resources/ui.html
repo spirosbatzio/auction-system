@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auction System Control Center</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            font-size: 0.9em;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.85em;
+        }
+
+        .status-active { background: #10b981; }
+        .status-finished { background: #ef4444; }
+        .status-idle { background: #6b7280; }
+
+        .tabs {
+            background: white;
+            border-bottom: 2px solid #e5e7eb;
+            display: flex;
+            padding: 0 20px;
+        }
+
+        .tab {
+            padding: 15px 25px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .tab:hover {
+            background: #f9fafb;
+        }
+
+        .tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .card h3 {
+            margin-bottom: 15px;
+            color: #1f2937;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.95em;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            font-size: 0.95em;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        table th,
+        table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        table tr:hover {
+            background: #f9fafb;
+        }
+
+        .activity-feed {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .activity-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #374151;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-time {
+            color: #9ca3af;
+            margin-right: 10px;
+        }
+
+        .activity-bid { color: #60a5fa; }
+        .activity-resolve { color: #34d399; }
+        .activity-price { color: #fbbf24; }
+        .activity-overdemand { color: #f87171; }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .item-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            transition: all 0.2s;
+        }
+
+        .item-card.has-winner {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .item-card.over-demand {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .item-card.unsold {
+            border-color: #9ca3af;
+            background: #f9fafb;
+        }
+
+        .item-id {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 8px;
+        }
+
+        .item-price {
+            font-size: 1.3em;
+            color: #667eea;
+            font-weight: bold;
+            margin: 8px 0;
+        }
+
+        .item-winner {
+            color: #059669;
+            font-weight: 500;
+        }
+
+        .round-info {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .round-number {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #667eea;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body x-data="auctionApp()" x-init="init()">
+<!-- Header -->
+<div class="header">
+    <h1>🎯 Multi-Agent Auction System</h1>
+    <div class="status-bar">
+            <span class="status-badge"
+                  :class="{
+                      'status-active': simulationStatus.isRunning,
+                      'status-finished': !simulationStatus.isRunning && simulationStatus.hasResults,
+                      'status-idle': !simulationStatus.isRunning && !simulationStatus.hasResults
+                  }">
+                <span x-show="simulationStatus.isRunning">🟢 Running</span>
+                <span x-show="!simulationStatus.isRunning && simulationStatus.hasResults">🔴 Finished</span>
+                <span x-show="!simulationStatus.isRunning && !simulationStatus.hasResults">⚪ Idle</span>
+            </span>
+        <span x-show="auctionState.round > 0">
+                Round: <strong x-text="auctionState.round"></strong>
+            </span>
+        <span class="toggle-switch">
+                <label class="switch">
+                    <input type="checkbox" x-model="autoRefresh">
+                    <span class="slider"></span>
+                </label>
+                <span>Auto-refresh</span>
+            </span>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+    <div class="tab" :class="{active: activeTab === 'scenarios'}" @click="activeTab = 'scenarios'">Scenarios</div>
+    <div class="tab" :class="{active: activeTab === 'agents'}" @click="activeTab = 'agents'">Agents</div>
+    <div class="tab" :class="{active: activeTab === 'simulate'}" @click="activeTab = 'simulate'">Run Simulation</div>
+    <div class="tab" :class="{active: activeTab === 'results'}" @click="activeTab = 'results'">Results</div>
+</div>
+
+<div class="container">
+    <!-- Scenarios Tab -->
+    <div x-show="activeTab === 'scenarios'">
+        <div class="card">
+            <h3>Create New Scenario</h3>
+            <form @submit.prevent="createScenario()">
+                <div class="grid">
+                    <div class="form-group">
+                        <label>Scenario Name</label>
+                        <input type="text" x-model="newScenario.name" required placeholder="e.g., Test Scenario">
+                    </div>
+                    <div class="form-group">
+                        <label>Number of Slots</label>
+                        <input type="number" x-model.number="newScenario.numberOfSlots" min="1" max="20" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Max Rounds</label>
+                        <input type="number" x-model.number="newScenario.maxRounds" min="1" max="200" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Epsilon (Price Increment)</label>
+                        <input type="number" x-model.number="newScenario.epsilon" min="0.1" max="10" step="0.1" value="1.0">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" :disabled="loading">
+                    <span x-show="loading" class="loading"></span>
+                    Create Scenario
+                </button>
+            </form>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <h3>Available Scenarios</h3>
+            <div x-show="scenarios.length === 0" class="alert alert-info">
+                No scenarios available. Create one above.
+            </div>
+            <table x-show="scenarios.length > 0">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Slots</th>
+                    <th>Max Rounds</th>
+                    <th>Epsilon</th>
+                    <th>Agents</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <template x-for="scenario in scenarios" :key="scenario.id">
+                    <tr>
+                        <td x-text="scenario.id"></td>
+                        <td x-text="scenario.name"></td>
+                        <td x-text="scenario.numberOfSlots"></td>
+                        <td x-text="scenario.maxRounds"></td>
+                        <td x-text="scenario.epsilon || 1.0"></td>
+                        <td x-text="scenario.agents ? scenario.agents.length : 0"></td>
+                        <td>
+                            <button class="btn btn-secondary" @click="selectScenario(scenario.id)" style="margin-right: 5px;">Select</button>
+                            <button class="btn btn-danger" @click="deleteScenario(scenario.id)"
+                                    x-show="scenario.id > 3">Delete</button>
+                        </td>
+                    </tr>
+                </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Agents Tab -->
+    <div x-show="activeTab === 'agents'">
+        <div class="card">
+            <h3>Add Agent to Scenario</h3>
+            <div class="form-group">
+                <label>Select Scenario</label>
+                <select x-model="selectedScenarioId" @change="loadAgents()" required>
+                    <option value="">-- Select Scenario --</option>
+                    <template x-for="scenario in scenarios" :key="scenario.id">
+                        <option :value="scenario.id" x-text="scenario.name + ' (ID: ' + scenario.id + ')'"></option>
+                    </template>
+                </select>
+            </div>
+
+            <form @submit.prevent="addAgent()" x-show="selectedScenarioId">
+                <div class="grid">
+                    <div class="form-group">
+                        <label>Agent Name</label>
+                        <input type="text" x-model="newAgent.agentName" required placeholder="e.g., MyAgent">
+                    </div>
+                    <div class="form-group">
+                        <label>Strategy Type</label>
+                        <select x-model="newAgent.strategyType" required>
+                            <option value="MYOPIC">Myopic (Greedy)</option>
+                            <option value="BUDGET">Budget Constrained</option>
+                            <option value="BUNDLE">Bundle (All-or-Nothing)</option>
+                            <option value="FLEXIBLE">Flexible (Load Balancer)</option>
+                            <option value="SNIPER">Sniper</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Valuation Type</label>
+                        <select x-model="newAgent.valuationType" required>
+                            <option value="RICH">Rich</option>
+                            <option value="POOR">Poor</option>
+                            <option value="FOCUSED">Focused</option>
+                            <option value="RANDOM">Random</option>
+                            <option value="BUNDLE_PAIR">Bundle Pair</option>
+                            <option value="FLEXIBLE_PAIR">Flexible Pair</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Target Slot (-1 for none)</label>
+                        <input type="number" x-model.number="newAgent.targetSlot" value="-1" min="-1">
+                    </div>
+                    <div class="form-group">
+                        <label>Budget Limit (-1 for unlimited)</label>
+                        <input type="number" x-model.number="newAgent.budgetLimit" value="-1" step="0.1" min="-1">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success" :disabled="loading">
+                    <span x-show="loading" class="loading"></span>
+                    Add Agent
+                </button>
+            </form>
+        </div>
+
+        <div class="card" style="margin-top: 20px;" x-show="selectedScenarioId">
+            <h3>Agents in Scenario</h3>
+            <div x-show="currentAgents.length === 0" class="alert alert-info">
+                No agents in this scenario. Add one above.
+            </div>
+            <table x-show="currentAgents.length > 0">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Strategy</th>
+                    <th>Valuation</th>
+                    <th>Target Slot</th>
+                    <th>Budget</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <template x-for="agent in currentAgents" :key="agent.id">
+                    <tr>
+                        <td x-text="agent.id"></td>
+                        <td x-text="agent.agentName"></td>
+                        <td x-text="agent.strategyType"></td>
+                        <td x-text="agent.valuationType"></td>
+                        <td x-text="agent.targetSlot === -1 ? 'Any' : agent.targetSlot"></td>
+                        <td x-text="agent.budgetLimit === -1 ? 'Unlimited' : agent.budgetLimit"></td>
+                        <td>
+                            <button class="btn btn-danger" @click="deleteAgent(agent.id)">Delete</button>
+                        </td>
+                    </tr>
+                </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Run Simulation Tab -->
+    <div x-show="activeTab === 'simulate'">
+        <div class="card">
+            <h3>Run Simulation</h3>
+            <div class="form-group">
+                <label>Select Scenario</label>
+                <select x-model="simulationScenarioId" required>
+                    <option value="">-- Select Scenario --</option>
+                    <template x-for="scenario in scenarios" :key="scenario.id">
+                        <option :value="scenario.id" x-text="scenario.name + ' (ID: ' + scenario.id + ')'"></option>
+                    </template>
+                </select>
+            </div>
+            <button class="btn btn-success" @click="runSimulation()"
+                    :disabled="!simulationScenarioId || simulationStatus.isRunning || loading">
+                <span x-show="loading" class="loading"></span>
+                <span x-show="simulationStatus.isRunning">Running...</span>
+                <span x-show="!simulationStatus.isRunning">Start Simulation</span>
+            </button>
+            <button class="btn btn-secondary" @click="refreshState()" style="margin-left: 10px;">
+                Refresh State
+            </button>
+        </div>
+
+        <!-- Live Auction State -->
+        <div class="card" style="margin-top: 20px;" x-show="auctionState.round > 0">
+            <div class="round-info">
+                <div>Round</div>
+                <div class="round-number" x-text="auctionState.round"></div>
+                <div x-text="auctionState.isActive ? '🟢 Active' : '🔴 Finished'"></div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" x-text="auctionState.items.length"></div>
+                    <div class="stat-label">Total Items</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" x-text="getSoldItemsCount()"></div>
+                    <div class="stat-label">Items Sold</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" x-text="getTotalRevenue().toFixed(2)"></div>
+                    <div class="stat-label">Total Revenue (€)</div>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 20px;">Current Items</h3>
+            <div class="items-grid">
+                <template x-for="item in auctionState.items" :key="item.id">
+                    <div class="item-card"
+                         :class="{
+                                 'has-winner': item.currentWinner,
+                                 'over-demand': !item.currentWinner && item.price > 0,
+                                 'unsold': !item.currentWinner && item.price === 0
+                             }">
+                        <div class="item-id" x-text="item.id"></div>
+                        <div class="item-price" x-text="item.price.toFixed(2) + ' €'"></div>
+                        <div class="item-winner" x-show="item.currentWinner" x-text="'Winner: ' + item.currentWinner"></div>
+                        <div x-show="!item.currentWinner && item.price > 0" style="color: #ef4444;">Over-Demand</div>
+                        <div x-show="!item.currentWinner && item.price === 0" style="color: #9ca3af;">Unsold</div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Activity Feed -->
+        <div class="card full-width" style="margin-top: 20px;" x-show="activityLog.length > 0">
+            <h3>Live Activity Feed</h3>
+            <div class="activity-feed" x-ref="activityFeed">
+                <template x-for="(log, index) in activityLog" :key="index">
+                    <div class="activity-item" :class="'activity-' + log.type">
+                        <span class="activity-time" x-text="log.time"></span>
+                        <span x-html="log.message"></span>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Recent Bids -->
+        <div class="card full-width" style="margin-top: 20px;" x-show="recentBids.length > 0">
+            <h3>Recent Bids (Last 20)</h3>
+            <table>
+                <thead>
+                <tr>
+                    <th>Round</th>
+                    <th>Agent</th>
+                    <th>Item</th>
+                    <th>Amount</th>
+                    <th>Time (round)</th>
+                </tr>
+                </thead>
+                <tbody>
+                <template x-for="bid in recentBids.slice().reverse().slice(0, 20)" :key="bid.round + '-' + bid.agentName">
+                    <tr>
+                        <td x-text="bid.round"></td>
+                        <td x-text="bid.agentName"></td>
+                        <td x-text="bid.itemId"></td>
+                        <td x-text="bid.amount.toFixed(2) + ' €'"></td>
+                        <td x-text="bid.time"></td>
+                    </tr>
+                </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Results Tab -->
+    <div x-show="activeTab === 'results'">
+        <div class="card full-width" x-show="simulationStatus.hasResults">
+            <h3>Final Allocation Results</h3>
+            <table>
+                <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Winner</th>
+                    <th>Final Price</th>
+                </tr>
+                </thead>
+                <tbody>
+                <template x-for="item in finalItems" :key="item.id">
+                    <tr>
+                        <td x-text="item.id"></td>
+                        <td>
+                            <span x-show="item.currentWinner" x-text="item.currentWinner"></span>
+                            <span x-show="!item.currentWinner" style="color: red;">UNSOLD</span>
+                        </td>
+                        <td x-text="item.price.toFixed(2) + ' €'"></td>
+                    </tr>
+                </template>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="grid" x-show="nashResult">
+            <div class="card">
+                <h3>Nash Equilibrium</h3>
+                <div x-show="nashResult.isNashEquilibrium" class="alert alert-success">
+                    ✓ Nash Equilibrium Achieved
+                </div>
+                <div x-show="!nashResult.isNashEquilibrium" class="alert alert-error">
+                    ⚠ Not Nash Equilibrium
+                </div>
+                <div x-show="nashResult.agentsWhoCanImprove && nashResult.agentsWhoCanImprove.length > 0" style="margin-top: 10px;">
+                    <strong>Agents who can improve:</strong>
+                    <span x-text="nashResult.agentsWhoCanImprove.join(', ')"></span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Pareto Efficiency</h3>
+                <div class="stat-card">
+                    <div class="stat-value" x-text="(paretoResult.efficiencyRatio * 100).toFixed(1) + '%'"></div>
+                    <div class="stat-label">Efficiency Ratio</div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <p><strong>Current Welfare:</strong> <span x-text="paretoResult.currentSocialWelfare.toFixed(2)"></span></p>
+                    <p><strong>Optimal Welfare:</strong> <span x-text="paretoResult.paretoOptimalWelfare.toFixed(2)"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card full-width" x-show="nashResult && nashResult.payoffs">
+            <h3>Agent Payoffs</h3>
+            <table>
+                <thead>
+                <tr>
+                    <th>Agent</th>
+                    <th>Items Won</th>
+                    <th>Total Valuation</th>
+                    <th>Total Paid</th>
+                    <th>Utility</th>
+                </tr>
+                </thead>
+                <tbody>
+                <template x-for="payoff in Object.values(nashResult.payoffs)" :key="payoff.agentId">
+                    <tr>
+                        <td x-text="payoff.agentId"></td>
+                        <td x-text="payoff.itemsWon"></td>
+                        <td x-text="payoff.totalValuation.toFixed(2)"></td>
+                        <td x-text="payoff.totalPricePaid.toFixed(2)"></td>
+                        <td :style="'color: ' + (payoff.utility >= 0 ? 'green' : 'red') + '; font-weight: bold'"
+                            x-text="payoff.utility.toFixed(2)"></td>
+                    </tr>
+                </template>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card full-width" style="margin-top: 20px;" x-show="simulationStatus.hasResults">
+            <a :href="'/plot'" target="_blank" class="btn btn-primary">View Full Dashboard with Charts</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function auctionApp() {
+        return {
+            activeTab: 'scenarios',
+            loading: false,
+            lastLoggedRound: 0,
+            autoRefresh: true,
+            refreshInterval: null,
+
+            scenarios: [],
+            selectedScenarioId: null,
+            currentAgents: [],
+
+            simulationScenarioId: null,
+            simulationStatus: { isRunning: false, hasResults: false },
+            auctionState: { round: 0, isActive: false, items: [] },
+
+            activityLog: [],
+            recentBids: [],
+            finalItems: [],
+            nashResult: null,
+            paretoResult: null,
+
+            newScenario: {
+                name: '',
+                numberOfSlots: 5,
+                maxRounds: 50,
+                epsilon: 1.0
+            },
+
+            newAgent: {
+                agentName: '',
+                strategyType: 'MYOPIC',
+                valuationType: 'RICH',
+                targetSlot: -1,
+                budgetLimit: -1.0
+            },
+
+            async init() {
+                await this.loadScenarios();
+                this.startAutoRefresh();
+            },
+
+            async loadScenarios() {
+                try {
+                    const response = await fetch('/api/scenarios');
+                    this.scenarios = await response.json();
+                } catch (error) {
+                    this.addActivity('error', 'Failed to load scenarios: ' + error.message);
+                }
+            },
+
+            async createScenario() {
+                this.loading = true;
+                try {
+                    const response = await fetch('/api/scenarios', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.newScenario)
+                    });
+                    if (response.ok) {
+                        const scenario = await response.json();
+                        this.scenarios.push(scenario);
+                        this.newScenario = { name: '', numberOfSlots: 5, maxRounds: 50, epsilon: 1.0 };
+                        this.addActivity('info', `Scenario "${scenario.name}" created (ID: ${scenario.id})`);
+                    } else {
+                        const error = await response.json();
+                        alert('Error: ' + (error.error || 'Failed to create scenario'));
+                    }
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+                this.loading = false;
+            },
+
+            async deleteScenario(id) {
+                if (!confirm('Delete this scenario?')) return;
+                try {
+                    const response = await fetch(`/api/scenarios/${id}`, { method: 'DELETE' });
+                    if (response.ok) {
+                        this.scenarios = this.scenarios.filter(s => s.id !== id);
+                        this.addActivity('info', `Scenario ${id} deleted`);
+                    }
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            },
+
+            selectScenario(id) {
+                this.selectedScenarioId = id;
+                this.loadAgents();
+                this.activeTab = 'agents';
+            },
+
+            async loadAgents() {
+                if (!this.selectedScenarioId) return;
+                try {
+                    const response = await fetch(`/api/scenarios/${this.selectedScenarioId}/agents`);
+                    this.currentAgents = await response.json();
+                } catch (error) {
+                    this.addActivity('error', 'Failed to load agents: ' + error.message);
+                }
+            },
+
+            async addAgent() {
+                this.loading = true;
+                try {
+                    const response = await fetch(`/api/scenarios/${this.selectedScenarioId}/agents`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.newAgent)
+                    });
+                    if (response.ok) {
+                        const agent = await response.json();
+                        this.currentAgents.push(agent);
+                        this.newAgent = { agentName: '', strategyType: 'MYOPIC', valuationType: 'RICH', targetSlot: -1, budgetLimit: -1.0 };
+                        this.addActivity('info', `Agent "${agent.agentName}" added`);
+                    } else {
+                        const error = await response.json();
+                        alert('Error: ' + (error.error || 'Failed to add agent'));
+                    }
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+                this.loading = false;
+            },
+
+            async deleteAgent(agentId) {
+                if (!confirm('Delete this agent?')) return;
+                try {
+                    const response = await fetch(`/api/scenarios/${this.selectedScenarioId}/agents/${agentId}`, {
+                        method: 'DELETE'
+                    });
+                    if (response.ok) {
+                        this.currentAgents = this.currentAgents.filter(a => a.id !== agentId);
+                        this.addActivity('info', `Agent ${agentId} deleted`);
+                    }
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            },
+
+            async runSimulation() {
+                if (!this.simulationScenarioId) return;
+                this.loading = true;
+                this.lastLoggedRound = 0;
+                try {
+                    const response = await fetch(`/api/simulation/run/${this.simulationScenarioId}`, {
+                        method: 'POST'
+                    });
+                    if (response.ok) {
+                        this.addActivity('info', `Simulation started for scenario ${this.simulationScenarioId}`);
+                        this.activeTab = 'simulate';
+                        await this.checkSimulationStatus();
+                    } else {
+                        const error = await response.json();
+                        alert('Error: ' + (error.error || 'Failed to start simulation'));
+                    }
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+                this.loading = false;
+            },
+
+            async checkSimulationStatus() {
+                try {
+                    const response = await fetch('/api/simulation/status');
+                    this.simulationStatus = await response.json();
+
+                    if (this.simulationStatus.hasResults) {
+                        await this.loadResults();
+                    }
+                } catch (error) {
+                    console.error('Failed to check status:', error);
+                }
+            },
+
+            async refreshState() {
+                await this.loadAuctionState();
+                await this.checkSimulationStatus();
+            },
+
+            async loadAuctionState() {
+                try {
+                    const response = await fetch('/auction');
+                    this.auctionState = await response.json();
+
+                    if (this.auctionState.round > 0 && this.auctionState.round > this.lastLoggedRound) {
+                        // Log all rounds that occurred since last check
+                        for (let round = this.lastLoggedRound + 1; round <= this.auctionState.round; round++) {
+                            this.addActivity('resolve', `Round ${round} resolved`);
+                        }
+                        this.lastLoggedRound = this.auctionState.round;
+                    }
+                } catch (error) {
+                    console.error('Failed to load state:', error);
+                }
+            },
+
+            async loadResults() {
+                try {
+                    const resultsResponse = await fetch('/api/simulation/results');
+                    if (resultsResponse.ok) {
+                        const results = await resultsResponse.json();
+                        this.finalItems = results.finalItems || [];
+                        this.recentBids = (results.bids || []).map(bid => ({
+                            ...bid,
+                            time: 'Round ' + (bid.round ?? '?')
+                        }));
+                    }
+
+                    const nashResponse = await fetch('/api/equilibrium/nash');
+                    if (nashResponse.ok) {
+                        this.nashResult = await nashResponse.json();
+                    }
+
+                    const paretoResponse = await fetch('/api/equilibrium/pareto');
+                    if (paretoResponse.ok) {
+                        this.paretoResult = await paretoResponse.json();
+                    }
+                } catch (error) {
+                    console.error('Failed to load results:', error);
+                }
+            },
+
+            startAutoRefresh() {
+                this.refreshInterval = setInterval(() => {
+                    if (this.autoRefresh && this.activeTab === 'simulate' && this.simulationStatus.isRunning) {
+                        this.refreshState();
+                    }
+                }, 2000);
+            },
+
+            addActivity(type, message) {
+                const time = new Date().toLocaleTimeString();
+                this.activityLog.push({ type, message, time });
+                if (this.activityLog.length > 100) {
+                    this.activityLog.shift();
+                }
+                this.$nextTick(() => {
+                    const feed = this.$refs.activityFeed;
+                    if (feed) feed.scrollTop = feed.scrollHeight;
+                });
+            },
+
+            getSoldItemsCount() {
+                return this.auctionState.items.filter(item => item.currentWinner).length;
+            },
+
+            getTotalRevenue() {
+                return this.auctionState.items.reduce((sum, item) => sum + item.price, 0);
+            }
+        }
+    }
+</script>
+</body>
+</html>

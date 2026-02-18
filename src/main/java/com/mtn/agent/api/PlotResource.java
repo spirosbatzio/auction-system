@@ -24,15 +24,20 @@ public class PlotResource {
     var stats = runner.getStatsHistory();
     var bids = runner.getBidHistory();
     var items = runner.getFinalItems();
+    var equilibriumHistory = runner.getEquilibriumHistory();
+
     if (stats == null || stats.isEmpty()) {
       return """
                    <html><body style='text-align:center; padding:50px; font-family:sans-serif;'>
                    <h1>No Data Available</h1>
-                   <p>Please run a simulation first using the command line (e.g., <code>sim -id 3</code>).</p>
+                   <p>Please run a simulation first using the API <code>POST /api/simulation/run/{scenarioId}</code></p>
                    </body></html>
                    """;
     }
 
-    return plotService.generateDashboard(stats, bids, items);
+    var nashResult = runner.getNashEquilibriumResult();
+    var paretoResult = runner.getParetoEfficiencyResult();
+
+    return plotService.generateDashboard(stats, bids, items, nashResult, paretoResult, equilibriumHistory);
   }
 }
