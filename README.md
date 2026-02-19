@@ -7,6 +7,8 @@ his project models autonomous agents competing for cloud computing resources (sl
 
 This project was developed as an assignment (but mostly for fun) for the **Intelligent Agents and Multi agent Systems** course of the [MSc in Artificial Intelligence](https://msc-ai.iit.demokritos.gr/), offered jointly by the University of Piraeus and NCSR "Demokritos".
 
+**Application is also deployed for demo purposes [here](https://agents.layeredlogic.eu/ui.html)** 
+
 **Authors:** Kostis Matzorakis, George Manthos, Spiros Batziopoulos
 
 The system simulates realistic market dynamics such as price inflation, bidding wars, and resource allocation efficiency, providing comprehensive game-theoretic analysis through an interactive dashboard and REST API.
@@ -333,7 +335,7 @@ docker build -f src/main/docker/Dockerfile.jvm -t auction-system:latest .
 docker run -p 8080:8080 auction-system:latest
 ```
 
-The application uses in-memory storage, so no database container is required!
+The application uses in-memory storage
 
 ## Key Insights from Convergence Analysis
 
