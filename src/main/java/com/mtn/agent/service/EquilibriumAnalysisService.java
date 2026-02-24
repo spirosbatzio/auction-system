@@ -82,7 +82,7 @@ public class EquilibriumAnalysisService {
         double askPrice = item.price() + 1.0;
         double gainIfWon = val - askPrice;
 
-        if (gainIfWon > currentPayoff.utility() + 1e-6) {
+        if (gainIfWon > 1e-6) {
           agentsWhoCanImprove.add(agentId);
           break;
         }
