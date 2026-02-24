@@ -17,14 +17,14 @@ public class ValuationGenerator {
 
     switch (type.toUpperCase()) {
       case "RICH":
-        for (int i = 0; i <= slotCount; i++) {
+        for (int i = 1; i <= slotCount; i++) {
           if (rand.nextBoolean()) {
             valuations.put("SLOT_" + i, 30.0 + rand.nextDouble() * 20.0);
           }
         }
         break;
       case "POOR":
-        for (int i = 0; i <= slotCount; i++) {
+        for (int i = 1; i <= slotCount; i++) {
           if (rand.nextBoolean()) {
             valuations.put("SLOT_" + i, 5.0 + rand.nextDouble() * 10.0);
           }
@@ -61,7 +61,7 @@ public class ValuationGenerator {
         }
         break;
       default:
-        for (int i = 0; i <= slotCount; i++) {
+        for (int i = 1; i <= slotCount; i++) {
           if (rand.nextDouble() > 0.6) {
             valuations.put("SLOT_" + i, 10.0 + rand.nextDouble() * 20.0);
           }

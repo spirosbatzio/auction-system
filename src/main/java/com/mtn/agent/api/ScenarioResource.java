@@ -139,7 +139,7 @@ public class ScenarioResource {
     public String name;
     public int numberOfSlots;
     public int maxRounds;
-    Double epsilon;
+    public Double epsilon;
   }
 
   public static class CreateAgentRequest {

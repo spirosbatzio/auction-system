@@ -8,6 +8,7 @@ import org.jboss.logging.Logger;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashMap;
 
 @ApplicationScoped
 public class SimulationRunner {
@@ -50,6 +51,10 @@ public class SimulationRunner {
 
   public List<AgentService> getCurrentAgents() {
     return currentAgents;
+  }
+
+  public Map<String, Map<String, Double>> getAgentValuations() {
+    return new HashMap<>(agentValuations);
   }
 
   public List<EquilibriumRoundStat> getEquilibriumHistory() {
@@ -122,17 +127,18 @@ public class SimulationRunner {
       }
 
       auctioneer.resolveRound();
+      AuctionState resolvedState = auctioneer.getState();
 
-      double revenue = state.items().stream()
+      double revenue = resolvedState.items().stream()
               .mapToDouble(item -> item.price())
               .sum();
 
       statsHistory.add(new RoundStat(currentRound, bidsInThisRound, revenue));
 
       EquilibriumAnalysisService.NashEquilibriumResult nashResult = equilibriumAnalysisService.checkNashEquilibrium(
-              state, agentValuations, agents);
+              resolvedState, agentValuations, agents);
       EquilibriumAnalysisService.ParetoEfficiencyResult paretoResult = equilibriumAnalysisService.calculateParetoEfficiency(
-              state, agentValuations);
+              resolvedState, agentValuations);
 
       equilibriumHistory.add(new EquilibriumRoundStat(
               currentRound,

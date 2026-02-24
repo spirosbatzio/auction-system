@@ -3,7 +3,6 @@ package com.mtn.agent.service;
 import com.mtn.agent.domain.AgentPayoff;
 import com.mtn.agent.domain.AuctionItem;
 import com.mtn.agent.domain.AuctionState;
-import com.mtn.agent.domain.Bid;
 import com.mtn.agent.service.AgentService;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -72,18 +71,22 @@ public class EquilibriumAnalysisService {
 
       if (currentPayoff == null) continue;
 
-      Bid alternativeBid = agent.decideBid(state);
+      Map<String, Double> valuations = agentValuations.get(agentId);
+      if (valuations == null) continue;
 
-      if (alternativeBid != null) {
+      // Unilateral deviation check: can this agent improve by switching to any unowned item?
+      for (AuctionItem item : state.items()) {
+        if (agentId.equals(item.currentWinner())) continue;
 
-        double alternativeUtility = calculateAlternativeUtility(
-                agentId, alternativeBid, state, agentValuations.get(agentId));
+        double val = valuations.getOrDefault(item.id(), 0.0);
+        double askPrice = item.price() + 1.0;
+        double gainIfWon = val - askPrice;
 
-        if (alternativeUtility > currentPayoff.utility() && !agentsWhoCanImprove.contains(agentId)) {
+        if (gainIfWon > currentPayoff.utility() + 1e-6) {
           agentsWhoCanImprove.add(agentId);
+          break;
         }
       }
-
     }
 
     boolean isNashEquilibrium = agentsWhoCanImprove.isEmpty();
@@ -95,37 +98,15 @@ public class EquilibriumAnalysisService {
     );
   }
 
-  private double calculateAlternativeUtility(
-          String agentId,
-          Bid alternativeBid,
-          AuctionState state,
-          Map<String, Double> valuations) {
-
-    // Calculate utility if agent wins the item they're bidding on
-    double valuation = valuations.getOrDefault(alternativeBid.itemId(), 0.0);
-    double price = alternativeBid.amount();
-    double utilityFromNewBid = valuation - price;
-
-    // Add utility from items they already own
-    for (AuctionItem item : state.items()) {
-      if (agentId.equals(item.currentWinner()) &&
-              !item.id().equals(alternativeBid.itemId())) {
-        utilityFromNewBid += valuations.getOrDefault(item.id(), 0.0) - item.price();
-      }
-    }
-
-    return utilityFromNewBid;
-  }
-
   public ParetoEfficiencyResult calculateParetoEfficiency(
           AuctionState state,
           Map<String, Map<String, Double>> agentValuations) {
 
     Map<String, AgentPayoff> currentPayoffs = calculatePayoffs(state, agentValuations);
 
-    // Calculate total social welfare (sum of all utilities)
+    // Calculate total social welfare (sum of valuations for won items, price-independent)
     double currentSocialWelfare = currentPayoffs.values().stream()
-            .mapToDouble(AgentPayoff::utility)
+            .mapToDouble(AgentPayoff::totalValuation)
             .sum();
 
     // Find Pareto-optimal allocation (greedy: assign each item to agent with highest valuation)

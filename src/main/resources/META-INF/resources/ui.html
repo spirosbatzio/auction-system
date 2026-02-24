@@ -443,7 +443,7 @@
 <!-- Tabs -->
 <div class="tabs">
     <div class="tab" :class="{active: activeTab === 'scenarios'}" @click="activeTab = 'scenarios'">Scenarios</div>
-    <div class="tab" :class="{active: activeTab === 'agents'}" @click="activeTab = 'agents'">Agents</div>
+    <div class="tab" :class="{active: activeTab === 'agents'}" @click="activeTab = 'agents'; loadAgentsWithPayoffs()">Agents</div>
     <div class="tab" :class="{active: activeTab === 'simulate'}" @click="activeTab = 'simulate'">Run Simulation</div>
     <div class="tab" :class="{active: activeTab === 'results'}" @click="activeTab = 'results'">Results</div>
 </div>
@@ -585,9 +585,14 @@
                     <th>ID</th>
                     <th>Name</th>
                     <th>Strategy</th>
-                    <th>Valuation</th>
+                    <th>Valuation Type</th>
                     <th>Target Slot</th>
                     <th>Budget</th>
+                    <th x-show="simulationStatus.hasResults">Slot Valuations</th>
+                    <th x-show="simulationStatus.hasResults">Items Won</th>
+                    <th x-show="simulationStatus.hasResults">Total Valuation</th>
+                    <th x-show="simulationStatus.hasResults">Total Paid</th>
+                    <th x-show="simulationStatus.hasResults">Utility</th>
                     <th>Actions</th>
                 </tr>
                 </thead>
@@ -600,6 +605,22 @@
                         <td x-text="agent.valuationType"></td>
                         <td x-text="agent.targetSlot === -1 ? 'Any' : agent.targetSlot"></td>
                         <td x-text="agent.budgetLimit === -1 ? 'Unlimited' : agent.budgetLimit"></td>
+                        <template x-if="simulationStatus.hasResults">
+                            <td style="font-size:0.8em;color:#555" x-text="getAgentValuations(agent.agentName) || '-'"></td>
+                        </template>
+                        <template x-if="simulationStatus.hasResults">
+                            <td x-text="getAgentPayoff(agent.agentName) ? getAgentPayoff(agent.agentName).itemsWon : '-'"></td>
+                        </template>
+                        <template x-if="simulationStatus.hasResults">
+                            <td x-text="getAgentPayoff(agent.agentName) ? getAgentPayoff(agent.agentName).totalValuation.toFixed(2) : '-'"></td>
+                        </template>
+                        <template x-if="simulationStatus.hasResults">
+                            <td x-text="getAgentPayoff(agent.agentName) ? getAgentPayoff(agent.agentName).totalPricePaid.toFixed(2) : '-'"></td>
+                        </template>
+                        <template x-if="simulationStatus.hasResults">
+                            <td :style="getAgentPayoff(agent.agentName) ? 'color:' + (getAgentPayoff(agent.agentName).utility >= 0 ? 'green' : 'red') + ';font-weight:bold' : ''"
+                                x-text="getAgentPayoff(agent.agentName) ? getAgentPayoff(agent.agentName).utility.toFixed(2) : '-'"></td>
+                        </template>
                         <td>
                             <button class="btn btn-danger" @click="deleteAgent(agent.id)">Delete</button>
                         </td>
@@ -827,6 +848,7 @@
             finalItems: [],
             nashResult: null,
             paretoResult: null,
+            agentValuations: null,
 
             newScenario: {
                 name: '',
@@ -1048,6 +1070,45 @@
                     const feed = this.$refs.activityFeed;
                     if (feed) feed.scrollTop = feed.scrollHeight;
                 });
+            },
+
+            async loadAgentsWithPayoffs() {
+                await this.loadAgents();
+                if (this.simulationStatus.hasResults) {
+                    if (!this.nashResult) {
+                        const nashResponse = await fetch('/api/equilibrium/nash');
+                        if (nashResponse.ok) {
+                            this.nashResult = await nashResponse.json();
+                        }
+                    }
+                    if (!this.agentValuations) {
+                        const valResponse = await fetch('/api/simulation/valuations');
+                        if (valResponse.ok) {
+                            this.agentValuations = await valResponse.json();
+                        }
+                    }
+                }
+            },
+
+            getAgentValuations(agentName) {
+                if (!this.agentValuations) return null;
+                const entry = Object.entries(this.agentValuations)
+                    .find(([key]) => key.startsWith(agentName + '_') || key === agentName);
+                if (!entry) return null;
+                // Return sorted slot→value pairs, excluding BUDGET_LIMIT key
+                return Object.entries(entry[1])
+                    .filter(([slot]) => slot !== 'BUDGET_LIMIT')
+                    .sort(([a], [b]) => a.localeCompare(b, undefined, {numeric: true}))
+                    .map(([slot, val]) => slot + ': ' + val.toFixed(1))
+                    .join(' | ');
+            },
+
+            getAgentPayoff(agentName) {
+                if (!this.nashResult || !this.nashResult.payoffs) return null;
+                // payoffs are keyed by agentId which is agentName + "_" + uuid
+                const entry = Object.entries(this.nashResult.payoffs)
+                    .find(([key]) => key.startsWith(agentName + '_') || key === agentName);
+                return entry ? entry[1] : null;
             },
 
             getSoldItemsCount() {

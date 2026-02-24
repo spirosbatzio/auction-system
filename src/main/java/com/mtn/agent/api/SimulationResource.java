@@ -70,6 +70,17 @@ public class SimulationResource {
   }
 
   @GET
+  @Path("/valuations")
+  public Response getValuations() {
+    if (simulationRunner.getAgentValuations().isEmpty()) {
+      return Response.status(Response.Status.NO_CONTENT)
+              .entity(Map.of("message", "No simulation results available"))
+              .build();
+    }
+    return Response.ok(simulationRunner.getAgentValuations()).build();
+  }
+
+  @GET
   @Path("/results")
   public Response getResults() {
     if (simulationRunner.getStatsHistory().isEmpty()) {
